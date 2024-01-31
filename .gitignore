@@ -1,0 +1,7 @@
+# IDE files
+.vscode
+CMakeLists.txt.user
+
+# Binaries
+build*/
+bin*/
