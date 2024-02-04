@@ -10,7 +10,8 @@ namespace udp {
 
 class Server {
  public:
-  Server(uint16_t port, size_t max_request_size = 1024, uint8_t workers = 1, size_t max_queue_size = 100);
+  Server(uint16_t port, size_t max_request_size = 1024,
+         uint8_t workers = 1, size_t max_queue_size = 100);
   virtual ~Server();
   bool is_open() const { return socket_fd_ >= 0; }
 

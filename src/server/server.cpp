@@ -152,7 +152,11 @@ bool parseArgs(const CmdLine& cmd,
   return true;
 }
 
+#include "resourse_parser.hpp"
+
 int main(int argc, char** argv) {
+  ResourseParser parser("resource_content.conf");
+
   CmdLine cmd(argc, argv);
 
   if (cmd.FindFlag('h', "help")) {
