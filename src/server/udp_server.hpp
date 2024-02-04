@@ -22,11 +22,11 @@ class Server {
   void WorkerThread();
 
   std::string name_;
-  size_t max_request_size_;
+  size_t request_length_;
 
   int socket_fd_;
 
-  size_t max_queue_size_;
+  size_t queue_size_;
   void* queue_;
 
   std::atomic_bool stop_receive_thread_;

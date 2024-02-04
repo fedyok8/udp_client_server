@@ -69,17 +69,19 @@ bool receive(int socket_fd, std::string& buffer, RequestInfo& request) {
   return true;
 }
 
-void send(int socket_fd, const RequestInfo& request, const std::string& response) {
+void send(int socket_fd, const RequestInfo& request,
+          const std::string& response) {
   sendto(socket_fd, response.data(), response.size(), MSG_CONFIRM,
          (sockaddr*)&request.cliaddr, request.cliaddr_len);
 }
 
 } // namespace
 
-udp::Server::Server(uint16_t port, size_t max_request_size, uint8_t workers, size_t max_queue_size)
-  : max_request_size_(max_request_size)
+udp::Server::Server(uint16_t port, size_t request_length,
+                    uint8_t workers, size_t queue_size)
+  : request_length_(request_length)
   , socket_fd_(-1)
-  , max_queue_size_(max_queue_size)
+  , queue_size_(queue_size)
   , queue_(nullptr)
   , stop_receive_thread_(false)
 {
@@ -90,6 +92,13 @@ udp::Server::Server(uint16_t port, size_t max_request_size, uint8_t workers, siz
   servaddr.sin_port = htons(port);
 
   name_ = std::string() + "Server(" + Endpoint(servaddr) + ")";
+
+  std::clog << name_
+            << " initializing with parameters"
+            << " request_length = " << request_length
+            << " workers = " << (int) workers
+            << " queue_size = " << queue_size
+            << std::endl;
 
   socket_fd_ = socket(AF_INET, SOCK_DGRAM, 0);
   if (socket_fd_ < 0) {
@@ -136,12 +145,14 @@ udp::Server::~Server() {
 void udp::Server::ReceiverThread() {
   std::clog << name_ << " receiver started" << std::endl;
   std::string buffer;
-  buffer.resize(max_request_size_);
+  buffer.resize(request_length_);
 
   RequestInfo request;
   Queue& queue = *((Queue*)queue_);
 
-  std::chrono::steady_clock::time_point last_success = std::chrono::steady_clock::now();
+  auto last_success = std::chrono::steady_clock::now();
+  std::chrono::milliseconds delay(500);
+  std::chrono::milliseconds sleep(100);
 
   while (!stop_receive_thread_) {
     sockaddr_in cliaddr;
@@ -151,15 +162,16 @@ void udp::Server::ReceiverThread() {
     bool received = receive(socket_fd_, buffer, request);
 
     if (!received) {
-      if (std::chrono::steady_clock::now() - last_success > std::chrono::milliseconds(500))
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      if (std::chrono::steady_clock::now() - last_success > delay)
+      std::this_thread::sleep_for(sleep);
       continue;
     }
 
-    bool added = queue.EnqueueIfSmaller(request, max_queue_size_);
+    bool added = queue.EnqueueIfSmaller(request, queue_size_);
 
     std::clog << (std::stringstream()
-                  << ((added)? name_ : std::string("WARNING: ") + name_ + "DROPPED")
+                  << ((added)? name_ :
+                               std::string("WARNING: ") + name_ + "DROPPED")
                   << " Request from "
                   << Endpoint(request.cliaddr)
                   << " size="
@@ -173,14 +185,17 @@ void udp::Server::ReceiverThread() {
 }
 
 void udp::Server::WorkerThread() {
-  std::string worker_name = name_ + " worker(" + std::to_string(NextWorkerNum()) + ")";
+  std::string worker_name = name_ + " worker("
+                            + std::to_string(NextWorkerNum()) + ")";
   std::clog << (worker_name + " started\n") << std::flush;
 
   RequestInfo request;
   Queue& queue = *((Queue*)queue_);
 
+  std::chrono::milliseconds wait(100);
+
   while (!stop_receive_thread_) {
-    bool received = queue.DequeueWaitFor(request, std::chrono::milliseconds(100));
+    bool received = queue.DequeueWaitFor(request, wait);
     if (!received) {
       continue;
     }
