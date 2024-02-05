@@ -1,52 +1,22 @@
-// Client side implementation of UDP client-server model
-#include <bits/stdc++.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
+#include <iostream>
 
-void handle(const std::string& response) {
-  printf("Received : %s\n", response.data());
-}
+#include "client.hpp"
+#include "client_request.hpp"
 
-bool client(uint16_t port, size_t max_request_size) {
-  int socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
-  if (socket_fd < 0) {
-    std::clog << "socket creation failed" << std::endl;
-    return false;
+int main(int argc, char** argv) {
+  CmdParser cmd(argc, argv);
+
+  if (cmd.FindFlag('h', "help")) {
+    ClientRequest::PrintUsage();
+    return 0;
   }
 
-  sockaddr_in servaddr;
-  sockaddr* p_servaddr = (sockaddr*)&servaddr;
-  memset(&servaddr, 0, sizeof(servaddr));
-  servaddr.sin_family = AF_INET;
-  servaddr.sin_port = htons(port);
-  servaddr.sin_addr.s_addr = INADDR_ANY;
-
-  const char *request = "I am client";
-
-  sendto(socket_fd, request, strlen(request), MSG_CONFIRM,
-         p_servaddr, sizeof(servaddr));
-
-  std::cout << "Request sent" << std::endl;
-
-  char* buffer = new char[max_request_size];
-  socklen_t len = sizeof(servaddr);
-
-  int n = recvfrom(socket_fd, buffer, max_request_size,
-              MSG_WAITALL, p_servaddr, &len);
-
-  handle(std::string(buffer, n));
-
-  close(socket_fd);
-  delete[] buffer;
-
-  return true;
-}
-
-int main() {
-  client(8888, 1024);
+  ClientRequest request(cmd);
+  Client client;
+  std::clog << "Sent " << request.to_string() << std::endl;
+  std::string responce = client.Send(request.port_, request.resource_,
+                                     request.max_responce_length_);
+  std::clog << "Received:\n"
+            << (responce.empty() ? std::string("EMPTY") : responce)
+            << std::endl;
 }
