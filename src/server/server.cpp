@@ -1,4 +1,4 @@
-#include "udp_server.hpp"
+#include "server_base.hpp"
 
 #include <csignal>
 #include <atomic>
@@ -13,7 +13,7 @@ void signal_handler(int /*signal_code*/) {
 }
 
 void main_thread(int port, int request_length, int workers, int queue_size) {
-  udp::Server server(port, request_length, workers, queue_size);
+  ServerBase server(port, request_length, workers, queue_size);
 
   while (!stop_thread && server.is_open()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(1));

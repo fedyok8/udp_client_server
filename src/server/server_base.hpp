@@ -1,18 +1,16 @@
-#ifndef SRC_SERVER_UDP_SERVER_HPP__
-#define SRC_SERVER_UDP_SERVER_HPP__
+#ifndef SRC_SERVER_SERVER_BASE_HPP__
+#define SRC_SERVER_SERVER_BASE_HPP__
 
 #include <atomic>
 #include <thread>
 #include <vector>
 #include <string>
 
-namespace udp {
-
-class Server {
+class ServerBase {
  public:
-  Server(uint16_t port, size_t max_request_size = 1024,
-         uint8_t workers = 1, size_t max_queue_size = 100);
-  virtual ~Server();
+  ServerBase(uint16_t port, size_t max_request_size = 1024,
+             uint8_t workers = 1, size_t max_queue_size = 100);
+  virtual ~ServerBase();
   bool is_open() const { return socket_fd_ >= 0; }
 
  protected:
@@ -35,6 +33,4 @@ class Server {
   std::vector<std::thread> workers_;
 };
 
-} // namespace udp
-
-#endif // SRC_SERVER_UDP_SERVER_HPP__
+#endif // SRC_SERVER_SERVER_BASE_HPP__

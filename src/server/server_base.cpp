@@ -1,4 +1,4 @@
-#include "udp_server.hpp"
+#include "server_base.hpp"
 
 
 #include <iostream>
@@ -48,13 +48,13 @@ class RequestInfo {
   std::string request;
 };
 
-using Queue = AsyncQueue<RequestInfo>;
-
 void RequestInfo::Reset() {
   cliaddr_len = sizeof(cliaddr);
   memset(&cliaddr, 0, cliaddr_len);
   request.clear();
 }
+
+using Queue = AsyncQueue<RequestInfo>;
 
 bool receive(int socket_fd, std::string& buffer, RequestInfo& request) {
   int n = recvfrom(socket_fd,
@@ -77,8 +77,8 @@ void send(int socket_fd, const RequestInfo& request,
 
 } // namespace
 
-udp::Server::Server(uint16_t port, size_t request_length,
-                    uint8_t workers, size_t queue_size)
+ServerBase::ServerBase(uint16_t port, size_t request_length,
+                       uint8_t workers, size_t queue_size)
   : request_length_(request_length)
   , socket_fd_(-1)
   , queue_size_(queue_size)
@@ -116,15 +116,15 @@ udp::Server::Server(uint16_t port, size_t request_length,
 
   queue_ = new Queue;
 
-  receive_thread_ = std::thread(&udp::Server::ReceiverThread, this);
+  receive_thread_ = std::thread(&ServerBase::ReceiverThread, this);
   workers_.resize(workers);
   for (int i = 0; i < workers; ++i) {
-    workers_[i] = std::thread(&udp::Server::WorkerThread, this);
+    workers_[i] = std::thread(&ServerBase::WorkerThread, this);
   }
   std::clog << name_ << " started" << std::endl;
 }
 
-udp::Server::~Server() {
+ServerBase::~ServerBase() {
   stop_receive_thread_ = true;
 
   if (receive_thread_.joinable())
@@ -142,7 +142,7 @@ udp::Server::~Server() {
   std::clog << name_ << " stopped" << std::endl;
 }
 
-void udp::Server::ReceiverThread() {
+void ServerBase::ReceiverThread() {
   std::clog << name_ << " receiver started" << std::endl;
   std::string buffer;
   buffer.resize(request_length_);
@@ -184,7 +184,7 @@ void udp::Server::ReceiverThread() {
   std::clog << name_ << " receiver stopped" << std::endl;
 }
 
-void udp::Server::WorkerThread() {
+void ServerBase::WorkerThread() {
   std::string worker_name = name_ + " worker("
                             + std::to_string(NextWorkerNum()) + ")";
   std::clog << (worker_name + " started\n") << std::flush;
@@ -214,6 +214,6 @@ void udp::Server::WorkerThread() {
   std::clog << (worker_name + " stopped\n") << std::flush;
 }
 
-std::string udp::Server::Handle(const std::string& request) {
+std::string ServerBase::Handle(const std::string& request) {
   return "I am server";
 }
