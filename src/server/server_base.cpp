@@ -1,14 +1,12 @@
 #include "server_base.hpp"
 
-
 #include <iostream>
 #include <sstream>
+#include <cstring>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
-
-#include <cstring>
 
 #include "common/async_queue.hpp"
 
@@ -50,7 +48,7 @@ class RequestInfo {
 
 void RequestInfo::Reset() {
   cliaddr_len = sizeof(cliaddr);
-  memset(&cliaddr, 0, cliaddr_len);
+  std::memset(&cliaddr, 0, cliaddr_len);
   request.clear();
 }
 
@@ -83,7 +81,7 @@ ServerBase::ServerBase(uint16_t port, size_t request_length,
   , socket_fd_(-1)
   , queue_size_(queue_size)
   , queue_(nullptr)
-  , stop_receive_thread_(false)
+  , stop_threads_(true)
 {
   sockaddr_in servaddr;
   memset(&servaddr, 0, sizeof(servaddr));
@@ -116,16 +114,31 @@ ServerBase::ServerBase(uint16_t port, size_t request_length,
 
   queue_ = new Queue;
 
-  receive_thread_ = std::thread(&ServerBase::ReceiverThread, this);
   workers_.resize(workers);
-  for (int i = 0; i < workers; ++i) {
+}
+
+ServerBase::~ServerBase() {
+  Stop();
+  Queue* queue = (Queue*)queue_;
+  delete queue;
+  if (socket_fd_ >= 0) {
+    close(socket_fd_);
+  }
+}
+
+void ServerBase::Start() {
+  stop_threads_ = false;
+
+  receive_thread_ = std::thread(&ServerBase::ReceiverThread, this);
+
+  for (int i = 0; i < workers_.size(); ++i) {
     workers_[i] = std::thread(&ServerBase::WorkerThread, this);
   }
   std::clog << name_ << " started" << std::endl;
 }
 
-ServerBase::~ServerBase() {
-  stop_receive_thread_ = true;
+void ServerBase::Stop() {
+  stop_threads_ = true;
 
   if (receive_thread_.joinable())
     receive_thread_.join();
@@ -133,12 +146,6 @@ ServerBase::~ServerBase() {
   for (int i = 0; i < workers_.size(); ++i)
     if(workers_[i].joinable())
       workers_[i].join();
-
-  if (socket_fd_ >= 0) {
-    close(socket_fd_);
-  }
-  Queue* queue = (Queue*)queue_;
-  delete queue;
   std::clog << name_ << " stopped" << std::endl;
 }
 
@@ -154,7 +161,7 @@ void ServerBase::ReceiverThread() {
   std::chrono::milliseconds delay(500);
   std::chrono::milliseconds sleep(100);
 
-  while (!stop_receive_thread_) {
+  while (!stop_threads_) {
     sockaddr_in cliaddr;
     socklen_t cliaddr_len;
 
@@ -194,7 +201,7 @@ void ServerBase::WorkerThread() {
 
   std::chrono::milliseconds wait(100);
 
-  while (!stop_receive_thread_) {
+  while (!stop_threads_) {
     bool received = queue.DequeueWaitFor(request, wait);
     if (!received) {
       continue;

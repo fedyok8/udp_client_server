@@ -16,8 +16,9 @@ void signal_handler(int /*signal_code*/) {
 void main_thread(int port, int request_length, int workers, int queue_size,
                  const std::string& content_filepath) {
   Server server(port, request_length, workers, queue_size, content_filepath);
+  server.Start();
 
-  while (!stop_thread && server.is_open() && !server.IsResourceEmpty()) {
+  while (!stop_thread && server.IsOpen() && !server.IsResourceEmpty()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
 }
