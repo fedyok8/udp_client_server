@@ -20,6 +20,10 @@ void main_thread(const ServerProperties& properties) {
                 properties.workers_,
                 properties.queue_size_,
                 properties.content_filepath_);
+  if (!server.IsOpen() || server.IsResourceEmpty()) {
+    return;
+  }
+
   server.Start();
 
   while (!stop_thread && server.IsOpen() && !server.IsResourceEmpty()) {

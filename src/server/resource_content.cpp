@@ -1,11 +1,11 @@
-#include "resourse_parser.hpp"
+#include "resource_content.hpp"
 
 #include <fstream>
 #include <iostream>
 
 #include "common/split_string.hpp"
 
-ResourseParser::ResourseParser(const std::string& filepath) {
+ResourceContent::ResourceContent(const std::string& filepath) {
   std::ifstream file(filepath);
   if (!file.is_open()) {
     std::clog << "FATAL: cannot open " << filepath << std::endl;
@@ -34,11 +34,11 @@ ResourseParser::ResourseParser(const std::string& filepath) {
   }
 }
 
-bool ResourseParser::Contains(const std::string& resource) const {
+bool ResourceContent::Contains(const std::string& resource) const {
   return content_.find(resource) != content_.cend();
 }
 
-std::string ResourseParser::Content(const std::string& resource) const {
+std::string ResourceContent::Content(const std::string& resource) const {
   if (!Contains(resource)) {
     return {};
   }

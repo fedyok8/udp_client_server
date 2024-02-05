@@ -1,12 +1,12 @@
-#ifndef SRC_SERVER_RESOURCE_HPP__
-#define SRC_SERVER_RESOURCE_HPP__
+#ifndef SRC_SERVER_RESOURCE_CONTENT_HPP__
+#define SRC_SERVER_RESOURCE_CONTENT_HPP__
 
 #include <string>
 #include <map>
 
-class ResourseParser {
+class ResourceContent {
  public:
-  ResourseParser(const std::string& filepath);
+  ResourceContent(const std::string& filepath);
   bool IsEmpty() const { return content_.empty(); }
   bool Contains(const std::string& resource) const;
   std::string Content(const std::string& resource) const;
@@ -15,4 +15,4 @@ class ResourseParser {
   std::map<std::string /*resource*/, std::string /*content*/> content_;
 };
 
-#endif // SRC_SERVER_RESOURCE_HPP__
+#endif // SRC_SERVER_RESOURCE_CONTENT_HPP__

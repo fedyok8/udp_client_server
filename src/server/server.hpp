@@ -7,7 +7,7 @@
 #include <string>
 
 #include "server_base.hpp"
-#include "resourse_parser.hpp"
+#include "resource_content.hpp"
 
 class Server : public ServerBase {
  public:
@@ -22,7 +22,7 @@ class Server : public ServerBase {
   std::string Handle(const std::string& request) override;
 
  private:
-  ResourseParser resource_;
+  ResourceContent resource_;
 };
 
 #endif // SRC_SERVER_SERVER_HPP__
